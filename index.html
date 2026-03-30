@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Osztálychat</title>
+<title>Osztálychat · Preview</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/appwrite@16.0.0/dist/iife/sdk.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
@@ -40,13 +39,14 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
 @keyframes fadein { from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)} }
 @keyframes slideIn { from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)} }
 @keyframes popIn { from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)} }
+@keyframes msgIn { from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)} }
 
 /* ── Toast ── */
 .toast { position:fixed;bottom:5rem;left:50%;transform:translateX(-50%) translateY(8px);background:var(--bg3);border:.5px solid var(--border2);border-radius:20px;padding:9px 18px;font-size:13px;color:var(--text);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;z-index:250; }
 .toast.show { opacity:1;transform:translateX(-50%) translateY(0); }
 
 /* ── Preview banner ── */
-.preview-banner { position:fixed;top:0;left:0;right:0;background:var(--amber-bg);border-bottom:.5px solid rgba(212,147,90,.3);padding:8px 16px;font-size:12px;color:var(--amber);text-align:center;z-index:100;letter-spacing:.03em;display:none; }
+.preview-banner { position:fixed;top:0;left:0;right:0;background:var(--amber-bg);border-bottom:.5px solid rgba(212,147,90,.3);padding:8px 16px;font-size:12px;color:var(--amber);text-align:center;z-index:100;letter-spacing:.03em; }
 .preview-banner span { opacity:.6;margin:0 6px; }
 .exit-preview-btn { background:none;border:.5px solid rgba(212,147,90,.5);border-radius:20px;padding:2px 10px;font-family:var(--sans);font-size:11px;color:var(--amber);cursor:pointer;margin-left:10px;transition:background .15s; }
 .exit-preview-btn:hover { background:rgba(212,147,90,.1); }
@@ -70,204 +70,58 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
 .login-err { font-size:13px;color:var(--red);margin-top:10px;min-height:18px; }
 .preview-btn { width:100%;margin-top:12px;background:none;border:.5px solid var(--border);border-radius:var(--radius-sm);padding:11px;font-family:var(--sans);font-size:13px;color:var(--muted);cursor:pointer;transition:border-color .15s,color .15s; }
 .preview-btn:hover { border-color:var(--border2);color:var(--text); }
+.preview-roles { display:flex;gap:8px;margin-top:8px; }
+.preview-role-btn { flex:1;background:none;border:.5px solid var(--border);border-radius:var(--radius-sm);padding:10px;font-family:var(--sans);font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;text-align:center; }
+.preview-role-btn:hover { border-color:var(--border2);color:var(--text); }
+.preview-role-btn.student { }
+.preview-role-btn.admin { border-color:rgba(212,147,90,.3);color:var(--amber); }
+.preview-role-btn.admin:hover { background:var(--amber-bg); }
 
-/* ══════════════════════════════════════════
-   APP LAYOUT  —  new 2-column design
-   Left: single sidebar (--sb-width)
-   Right: chat area
-   ══════════════════════════════════════════ */
+/* ══ APP ══ */
 #app { display:none;height:100vh;flex-direction:row; }
 #app.has-banner { padding-top:34px; }
 
 /* ── Sidebar ── */
-#sidebar {
-  width: var(--sb-width);
-  background: var(--bg2);
-  border-right: .5px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  overflow: hidden;
-}
+#sidebar { width:var(--sb-width);background:var(--bg2);border-right:.5px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden; }
+.sb-header { padding:18px 16px 14px;border-bottom:.5px solid var(--border);flex-shrink:0; }
+.sb-header-title { font-family:var(--serif);font-size:1.1rem;color:var(--text);line-height:1.2; }
+.sb-header-sub { font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:.04em; }
+.sb-panels { flex:1;overflow:hidden;position:relative; }
 
-/* ── Sidebar header ── */
-.sb-header {
-  padding: 18px 16px 14px;
-  border-bottom: .5px solid var(--border);
-  flex-shrink: 0;
-}
-.sb-header-title {
-  font-family: var(--serif);
-  font-size: 1.1rem;
-  color: var(--text);
-  line-height: 1.2;
-}
-.sb-header-sub {
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 3px;
-  letter-spacing: .04em;
-}
+#panel-groups { position:absolute;inset:0;overflow-y:auto;padding:10px 8px;transition:transform .25s cubic-bezier(.4,0,.2,1), opacity .2s; }
+#panel-groups::-webkit-scrollbar { width:3px; }
+#panel-groups::-webkit-scrollbar-thumb { background:var(--border2);border-radius:2px; }
 
-/* ── Nav panels container ── */
-.sb-panels {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
-}
+.grp-card { display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:var(--radius);border:.5px solid var(--border);background:var(--bg3);cursor:pointer;margin-bottom:6px;transition:border-color .15s, background .15s;position:relative;overflow:hidden;animation:popIn .2s ease both; }
+.grp-card:hover { border-color:var(--border2);background:rgba(255,255,255,.03); }
+.grp-card.active { border-color:rgba(200,184,154,.35);background:rgba(200,184,154,.06); }
+.grp-card-badge { width:38px;height:38px;border-radius:10px;background:rgba(200,184,154,.1);border:.5px solid rgba(200,184,154,.2);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:14px;color:var(--accent);flex-shrink:0;letter-spacing:-.01em; }
+.grp-card-info { flex:1;min-width:0; }
+.grp-card-name { font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.grp-card-sub { font-size:11px;color:var(--muted);margin-top:1px; }
+.grp-card-arrow { color:var(--muted);font-size:12px;flex-shrink:0;transition:transform .15s, color .15s; }
+.grp-card:hover .grp-card-arrow { color:var(--accent);transform:translateX(2px); }
 
-/* ── Main channel cards panel ── */
-#panel-groups {
-  position: absolute;
-  inset: 0;
-  overflow-y: auto;
-  padding: 10px 8px;
-  transition: transform .25s cubic-bezier(.4,0,.2,1), opacity .2s;
-}
-#panel-groups::-webkit-scrollbar { width: 3px; }
-#panel-groups::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+#panel-chans { position:absolute;inset:0;overflow-y:auto;display:flex;flex-direction:column;transform:translateX(100%);opacity:0;transition:transform .25s cubic-bezier(.4,0,.2,1), opacity .2s;pointer-events:none; }
+#panel-chans::-webkit-scrollbar { width:3px; }
+#panel-chans::-webkit-scrollbar-thumb { background:var(--border2);border-radius:2px; }
+#panel-chans.visible { transform:translateX(0);opacity:1;pointer-events:all; }
+#panel-groups.pushed { transform:translateX(-100%);opacity:0;pointer-events:none; }
 
-/* Group card */
-.grp-card {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 11px 12px;
-  border-radius: var(--radius);
-  border: .5px solid var(--border);
-  background: var(--bg3);
-  cursor: pointer;
-  margin-bottom: 6px;
-  transition: border-color .15s, background .15s;
-  position: relative;
-  overflow: hidden;
-  animation: popIn .2s ease both;
-}
-.grp-card:hover {
-  border-color: var(--border2);
-  background: rgba(255,255,255,.03);
-}
-.grp-card.active {
-  border-color: rgba(200,184,154,.35);
-  background: rgba(200,184,154,.06);
-}
-.grp-card-badge {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: rgba(200,184,154,.1);
-  border: .5px solid rgba(200,184,154,.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--serif);
-  font-size: 14px;
-  color: var(--accent);
-  flex-shrink: 0;
-  letter-spacing: -.01em;
-}
-.grp-card-info { flex: 1; min-width: 0; }
-.grp-card-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.grp-card-sub {
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 1px;
-}
-.grp-card-arrow {
-  color: var(--muted);
-  font-size: 12px;
-  flex-shrink: 0;
-  transition: transform .15s, color .15s;
-}
-.grp-card:hover .grp-card-arrow { color: var(--accent); transform: translateX(2px); }
+.back-btn { display:flex;align-items:center;gap:7px;padding:10px 12px 6px;background:none;border:none;color:var(--muted);font-family:var(--sans);font-size:12px;cursor:pointer;transition:color .15s;flex-shrink:0;text-align:left; }
+.back-btn:hover { color:var(--accent); }
+.back-btn svg { flex-shrink:0; }
+.chan-section-label { font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:8px 14px 5px;flex-shrink:0; }
+.chan-list-inner { flex:1;padding:0 8px 8px; }
 
-/* ── Sub-channel panel ── */
-#panel-chans {
-  position: absolute;
-  inset: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  transform: translateX(100%);
-  opacity: 0;
-  transition: transform .25s cubic-bezier(.4,0,.2,1), opacity .2s;
-  pointer-events: none;
-}
-#panel-chans::-webkit-scrollbar { width: 3px; }
-#panel-chans::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-#panel-chans.visible {
-  transform: translateX(0);
-  opacity: 1;
-  pointer-events: all;
-}
-#panel-groups.pushed {
-  transform: translateX(-100%);
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* Back button */
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 10px 12px 6px;
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-family: var(--sans);
-  font-size: 12px;
-  cursor: pointer;
-  transition: color .15s;
-  flex-shrink: 0;
-  text-align: left;
-}
-.back-btn:hover { color: var(--accent); }
-.back-btn svg { flex-shrink: 0; }
-
-.chan-section-label {
-  font-size: 10px;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  padding: 8px 14px 5px;
-  flex-shrink: 0;
-}
-
-.chan-list-inner {
-  flex: 1;
-  padding: 0 8px 8px;
-}
-
-/* Sub-channel item */
-.chan-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  color: var(--muted);
-  font-size: 13px;
-  transition: all .15s;
-  position: relative;
-  animation: slideIn .15s ease both;
-}
-.chan-item:hover { color: var(--text); background: var(--bg3); }
-.chan-item.active { color: var(--accent); background: rgba(200,184,154,.07); border: .5px solid var(--border); }
-.chan-hash { font-size: 14px; flex-shrink: 0; color: inherit; opacity: .5; }
-.chan-nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chan-item { display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--radius-sm);cursor:pointer;color:var(--muted);font-size:13px;transition:all .15s;position:relative;animation:slideIn .15s ease both; }
+.chan-item:hover { color:var(--text);background:var(--bg3); }
+.chan-item.active { color:var(--accent);background:rgba(200,184,154,.07);border:.5px solid var(--border); }
+.chan-hash { font-size:14px;flex-shrink:0;color:inherit;opacity:.5; }
+.chan-nm { flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .chan-del { background:none;border:none;color:var(--muted);cursor:pointer;padding:2px 3px;border-radius:4px;font-size:11px;line-height:1;transition:color .15s;display:none;flex-shrink:0; }
 .chan-item:hover .chan-del { display:block; }
 .chan-del:hover { color:var(--red); }
-
 .chan-add-btn { margin:6px 8px;width:calc(100% - 16px);background:none;border:.5px dashed var(--border2);border-radius:var(--radius-sm);padding:8px 10px;font-family:var(--sans);font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px; }
 .chan-add-btn:hover { border-color:var(--accent);color:var(--accent); }
 .chan-empty { padding:16px 10px;font-size:12px;color:var(--muted);text-align:center; }
@@ -275,10 +129,15 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
 /* ── User card ── */
 .user-card { padding:10px 12px;border-top:.5px solid var(--border);display:flex;align-items:center;gap:9px;flex-shrink:0; }
 .uav { width:28px;height:28px;border-radius:50%;background:rgba(200,184,154,.15);border:.5px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--accent);flex-shrink:0;text-transform:uppercase; }
+.uav.admin-av { background:rgba(212,147,90,.15);border-color:var(--amber);color:var(--amber); }
 .u-name { font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .u-role { font-size:10px;color:var(--muted); }
 .logout-btn { background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;border-radius:6px;transition:color .15s;display:flex;align-items:center;flex-shrink:0; }
 .logout-btn:hover { color:var(--red); }
+
+/* ── Admin panel btn ── */
+.admin-panel-btn { margin:6px 8px 2px;width:calc(100% - 16px);background:none;border:.5px solid rgba(212,147,90,.2);border-radius:var(--radius-sm);padding:8px 10px;font-family:var(--sans);font-size:12px;color:var(--amber);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px; }
+.admin-panel-btn:hover { background:var(--amber-bg);border-color:rgba(212,147,90,.4); }
 
 /* ── Chat area ── */
 #chat-area { flex:1;display:flex;flex-direction:column;background:var(--bg);min-width:0; }
@@ -287,6 +146,9 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
 .ct-name { font-size:14px;font-weight:500; }
 .ct-sep { width:.5px;height:16px;background:var(--border);margin-left:3px; }
 .ct-desc { font-size:12px;color:var(--muted);margin-left:5px; }
+.ct-spacer { flex:1; }
+.ct-online { font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px; }
+.ct-online-dot { width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block; }
 
 /* ── Welcome ── */
 #welcome { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);text-align:center; }
@@ -303,13 +165,16 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
 .msg-row { display:flex;gap:10px;padding:2px 6px;border-radius:var(--radius-sm);transition:background .12s;position:relative; }
 .msg-row:hover { background:var(--bg2); }
 .msg-row.first { margin-top:8px; }
+.msg-row.new-msg { animation:msgIn .25s ease both; }
 .msg-av-col { width:32px;flex-shrink:0;padding-top:1px; }
 .msg-av { width:32px;height:32px;border-radius:50%;background:rgba(200,184,154,.12);border:.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--accent);text-transform:uppercase; }
+.msg-av.self-av { background:rgba(200,184,154,.2);border-color:rgba(200,184,154,.4); }
 .msg-spacer { width:32px;flex-shrink:0; }
 .msg-content { flex:1;min-width:0; }
 .msg-meta { display:flex;align-items:baseline;gap:7px;margin-bottom:1px; }
 .msg-author { font-size:13px;font-weight:500;color:var(--text); }
-.msg-author.preview-u { color:var(--muted);font-style:italic; }
+.msg-author.self-name { color:var(--accent); }
+.msg-author.admin-name { color:var(--amber); }
 .msg-time { font-size:11px;color:var(--muted); }
 .msg-body { font-size:14px;color:var(--text);line-height:1.65;word-break:break-word; }
 .msg-body strong { color:var(--accent2); }
@@ -322,17 +187,6 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
 .msg-body a { color:var(--blue);text-decoration:none; }
 .msg-body a:hover { text-decoration:underline; }
 .msg-body ul { padding-left:18px; }
-
-/* Attachments */
-.msg-atts { display:flex;flex-wrap:wrap;gap:7px;margin-top:6px; }
-.att-img { max-width:320px;max-height:220px;border-radius:var(--radius-sm);cursor:pointer;border:.5px solid var(--border2);object-fit:cover;display:block;transition:border-color .15s; }
-.att-img:hover { border-color:var(--accent); }
-.att-vid { max-width:360px;border-radius:var(--radius-sm);border:.5px solid var(--border2); }
-.att-file { display:flex;align-items:center;gap:9px;background:var(--bg2);border:.5px solid var(--border);border-radius:var(--radius-sm);padding:9px 13px;text-decoration:none;color:var(--text);font-size:13px;transition:border-color .15s;max-width:280px; }
-.att-file:hover { border-color:var(--border2); }
-.att-file-icon { font-size:20px;flex-shrink:0; }
-.att-file-name { font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-.att-file-size { font-size:11px;color:var(--muted); }
 
 /* Reactions */
 .msg-reacts { display:flex;flex-wrap:wrap;gap:4px;margin-top:4px; }
@@ -355,19 +209,12 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
 /* ── Input area ── */
 #input-area { padding:10px 18px 14px;flex-shrink:0;border-top:.5px solid var(--border);background:var(--bg2); }
 #file-prevs { display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px; }
-.file-chip { background:var(--bg3);border:.5px solid var(--border2);border-radius:var(--radius-sm);padding:5px 9px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;max-width:180px; }
-.file-chip img,.file-chip video { width:36px;height:36px;object-fit:cover;border-radius:4px; }
-.file-chip-nm { flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-.file-chip-rm { background:none;border:none;color:var(--muted);cursor:pointer;padding:1px 3px;border-radius:3px;font-size:12px;line-height:1;transition:color .12s;flex-shrink:0; }
-.file-chip-rm:hover { color:var(--red); }
 .md-toolbar { display:flex;gap:1px;margin-bottom:6px; }
 .md-btn { background:none;border:none;color:var(--muted);cursor:pointer;padding:3px 7px;border-radius:5px;font-size:12px;font-family:var(--sans);font-weight:500;transition:all .12s;line-height:1;display:flex;align-items:center;justify-content:center;min-width:26px; }
 .md-btn:hover { background:var(--bg3);color:var(--text); }
 .md-sep { width:.5px;height:16px;background:var(--border);margin:0 2px;align-self:center; }
 .compose-box { background:var(--bg3);border:.5px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:flex-end;gap:7px;padding:7px 9px;transition:border-color .15s; }
 .compose-box:focus-within { border-color:var(--border2); }
-.attach-btn { background:none;border:none;color:var(--muted);cursor:pointer;padding:3px;border-radius:5px;font-size:16px;transition:color .15s;flex-shrink:0;line-height:1;display:flex;align-items:center; }
-.attach-btn:hover { color:var(--accent); }
 #msg-input { flex:1;background:none;border:none;outline:none;color:var(--text);font-family:var(--sans);font-size:14px;resize:none;max-height:120px;min-height:20px;line-height:1.5;overflow-y:auto; }
 #msg-input::placeholder { color:var(--muted); }
 .send-btn { background:var(--accent);border:none;border-radius:var(--radius-sm);color:#0e0e0e;cursor:pointer;padding:5px 9px;font-size:13px;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0;line-height:1; }
@@ -389,6 +236,42 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
 .btn-accent:disabled { opacity:.4;cursor:not-allowed; }
 .btn-danger { flex:1;background:var(--red-bg);border:.5px solid rgba(192,96,96,.4);border-radius:var(--radius-sm);padding:10px;font-family:var(--sans);font-size:14px;font-weight:500;color:var(--red);cursor:pointer;transition:background .15s; }
 .btn-danger:hover { background:rgba(192,96,96,.2); }
+
+/* ── Admin Panel (wide modal) ── */
+.modal.admin-modal { max-width:600px; }
+.admin-tabs { display:flex;gap:2px;margin-bottom:1.25rem;background:var(--bg3);border-radius:var(--radius-sm);padding:3px; }
+.admin-tab { flex:1;background:none;border:none;border-radius:6px;padding:7px 10px;font-family:var(--sans);font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;text-align:center; }
+.admin-tab.active { background:var(--bg2);color:var(--text);border:.5px solid var(--border); }
+.admin-tab-pane { display:none; }
+.admin-tab-pane.active { display:block; }
+.admin-user-row { display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);border:.5px solid var(--border);background:var(--bg3);margin-bottom:6px; }
+.admin-user-av { width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;text-transform:uppercase; }
+.admin-user-info { flex:1;min-width:0; }
+.admin-user-name { font-size:13px;font-weight:500; }
+.admin-user-email { font-size:11px;color:var(--muted); }
+.admin-badge { font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500; }
+.admin-badge.admin { background:var(--amber-bg);color:var(--amber);border:.5px solid rgba(212,147,90,.3); }
+.admin-badge.student { background:var(--bg2);color:var(--muted);border:.5px solid var(--border); }
+.admin-action-row { display:flex;gap:6px; }
+.admin-action-btn { background:none;border:.5px solid var(--border);border-radius:6px;padding:4px 10px;font-family:var(--sans);font-size:11px;color:var(--muted);cursor:pointer;transition:all .15s; }
+.admin-action-btn:hover { border-color:var(--border2);color:var(--text); }
+.admin-action-btn.danger:hover { border-color:rgba(192,96,96,.4);color:var(--red); }
+.admin-action-btn.promote:hover { border-color:rgba(212,147,90,.4);color:var(--amber); }
+.admin-stats-grid { display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem; }
+.admin-stat { background:var(--bg3);border:.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px; }
+.admin-stat-val { font-family:var(--serif);font-size:1.5rem;color:var(--accent); }
+.admin-stat-label { font-size:11px;color:var(--muted);margin-top:2px; }
+.admin-recent-msg { padding:8px 12px;border-radius:var(--radius-sm);border:.5px solid var(--border);background:var(--bg3);margin-bottom:5px;display:flex;gap:8px;align-items:flex-start; }
+.admin-recent-author { font-size:11px;font-weight:500;color:var(--accent);flex-shrink:0;min-width:80px; }
+.admin-recent-text { font-size:12px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.admin-recent-chan { font-size:10px;color:var(--muted);flex-shrink:0;opacity:.6; }
+.admin-section-title { font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px; }
+.admin-announce-area { width:100%;background:var(--bg3);border:.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;resize:vertical;min-height:70px;transition:border-color .15s; }
+.admin-announce-area:focus { border-color:var(--accent); }
+.btn-full { width:100%;margin-top:8px;background:var(--accent);color:#0e0e0e;border:none;border-radius:var(--radius-sm);padding:10px;font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:background .15s; }
+.btn-full:hover { background:var(--accent2); }
+.btn-full.amber { background:var(--amber);color:#0e0e0e; }
+.btn-full.amber:hover { filter:brightness(1.1); }
 
 /* ── Lightbox ── */
 #lightbox { position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:300;cursor:zoom-out; }
@@ -416,13 +299,15 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
 
 <div class="loading-overlay" id="loading"><div class="spinner"></div></div>
 <div class="toast" id="toast"></div>
-<div class="preview-banner" id="prev-banner">
-  Előnézet módban böngészel — csak olvasás
+<div class="preview-banner" id="prev-banner" style="display:none">
+  Előnézet mód — nincs backend csatlakoztatva
   <span>·</span>
-  <button class="exit-preview-btn" onclick="exitPreview()">Bejelentkezés →</button>
+  <span id="prev-role-label">tanuló</span>
+  <span>·</span>
+  <button class="exit-preview-btn" onclick="exitPreview()">Kilépés ↩</button>
 </div>
 
-<!-- ══ LOGIN ══════════════════════════════════════════════ -->
+<!-- ══ LOGIN ══ -->
 <div id="screen-login">
   <div class="login-eyebrow">Széchenyi SZC · Osztálychat</div>
   <h1 class="login-title">Osztály<br><em>Chat.</em></h1>
@@ -435,29 +320,27 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
   </div>
   <button class="btn-primary" id="login-btn" onclick="login()">Bejelentkezés</button>
   <div class="login-err" id="login-err"></div>
-  <button class="preview-btn" onclick="enterPreview()">Előnézet fiók nélkül →</button>
+  <p style="font-size:11px;color:var(--muted);margin:1.5rem 0 .75rem;text-align:center">— előnézet fiók nélkül —</p>
+  <div class="preview-roles">
+    <button class="preview-role-btn student" onclick="enterPreview('student')">👤 Tanuló</button>
+    <button class="preview-role-btn admin" onclick="enterPreview('admin')">⭐ Admin</button>
+  </div>
   <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:2rem;">
-    All rights reserved. · Made by <a href="https://github.com/SPARFahejasCsiga" style="color:var(--accent);text-decoration:none;">SPARFahejasCsiga</a> · 2026<br>Design made by <a href="https://github.com/QuaternionDev" style="color:var(--accent);text-decoration:none;">QuaternionDev</a><br>v0.1-demo
+    All rights reserved. · Made by <a href="https://github.com/SPARFahejasCsiga" style="color:var(--accent);text-decoration:none;">SPARFahejasCsiga</a> · 2026<br>
+    Design made by <a href="https://github.com/QuaternionDev" style="color:var(--accent);text-decoration:none;">QuaternionDev</a><br>
+    v0.2-demo
   </p>
 </div>
 
-<!-- ══ APP ════════════════════════════════════════════════ -->
+<!-- ══ APP ══ -->
 <div id="app">
-
-  <!-- ── Sidebar ── -->
   <div id="sidebar">
     <div class="sb-header">
       <div class="sb-header-title" id="sb-title">Osztálychat</div>
       <div class="sb-header-sub" id="sb-sub">Válassz csatornát</div>
     </div>
-
     <div class="sb-panels">
-      <!-- Panel 1: group cards -->
-      <div id="panel-groups">
-        <!-- filled by JS -->
-      </div>
-
-      <!-- Panel 2: sub-channels -->
+      <div id="panel-groups"></div>
       <div id="panel-chans">
         <button class="back-btn" onclick="showGroupPanel()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -470,20 +353,21 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
         </div>
       </div>
     </div>
-
+    <div id="admin-panel-wrap" style="display:none">
+      <button class="admin-panel-btn" onclick="openModal('modal-admin')">⚙️ Admin panel</button>
+    </div>
     <div class="user-card">
       <div class="uav" id="user-av">?</div>
       <div style="flex:1;min-width:0">
         <div class="u-name" id="u-name">—</div>
         <div class="u-role" id="u-role">tanuló</div>
       </div>
-      <button class="logout-btn" onclick="logout()" title="Kijelentkezés">
+      <button class="logout-btn" onclick="exitPreview()" title="Kilépés">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </button>
     </div>
   </div>
 
-  <!-- ── Chat area ── -->
   <div id="chat-area">
     <div id="welcome">
       <div class="w-title">Chat.</div>
@@ -496,10 +380,11 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
         <span class="ct-name" id="ct-name">—</span>
         <span class="ct-sep"></span>
         <span class="ct-desc" id="ct-desc"></span>
+        <span class="ct-spacer"></span>
+        <span class="ct-online"><span class="ct-online-dot"></span><span id="ct-online-count">3 online</span></span>
       </div>
       <div id="msgs"></div>
       <div id="input-area">
-        <div id="file-prevs"></div>
         <div class="md-toolbar" id="md-toolbar">
           <button class="md-btn" onclick="wrapSel('**','**')" title="Félkövér"><b>B</b></button>
           <button class="md-btn" onclick="wrapSel('*','*')" title="Dőlt"><i style="font-family:serif">I</i></button>
@@ -511,17 +396,13 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
           <button class="md-btn" onclick="insertMd('- ')" title="Lista">•</button>
         </div>
         <div class="compose-box" id="compose-box">
-          <button class="attach-btn" id="attach-btn" onclick="document.getElementById('file-input').click()" title="Csatolmány">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-          </button>
-          <input type="file" id="file-input" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" style="display:none" onchange="handleFiles(this.files)">
           <textarea id="msg-input" placeholder="Üzenet küldése…" rows="1" onkeydown="msgKeyDown(event)" oninput="autoResize(this)"></textarea>
           <button class="send-btn" id="send-btn" onclick="sendMessage()">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
         <div class="preview-note" id="prev-note" style="display:none">
-          Előnézet módban nem lehet üzenetet küldeni — <a href="#" onclick="exitPreview()" style="color:var(--accent)">jelentkezz be</a>
+          Előnézet — <a href="#" onclick="exitPreview()" style="color:var(--accent)">jelentkezz be</a> az üzenetküldéshez
         </div>
       </div>
     </div>
@@ -533,7 +414,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
   <button class="nav-btn" id="nav-chan" onclick="mobileNav('chan')"><span class="nav-icon">☰</span>Channelok</button>
 </div>
 
-<!-- ── Modals ── -->
+<!-- ── Modal: Új channel ── -->
 <div class="modal-overlay" id="modal-add">
   <div class="modal">
     <div class="modal-title">Új channel</div>
@@ -550,6 +431,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
   </div>
 </div>
 
+<!-- ── Modal: Channel törlése ── -->
 <div class="modal-overlay" id="modal-del">
   <div class="modal" style="text-align:center">
     <div style="font-size:1.8rem;margin-bottom:10px">🗑️</div>
@@ -562,22 +444,37 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
   </div>
 </div>
 
+<!-- ── Modal: Admin panel ── -->
+<div class="modal-overlay" id="modal-admin">
+  <div class="modal admin-modal">
+    <div class="modal-title">⚙️ Admin panel</div>
+    <div class="modal-sub">Preview mód — az adatok csak memóriában tárolódnak</div>
+    <div class="admin-tabs">
+      <button class="admin-tab active" onclick="adminTab('overview')">Áttekintés</button>
+      <button class="admin-tab" onclick="adminTab('users')">Felhasználók</button>
+      <button class="admin-tab" onclick="adminTab('channels')">Channelok</button>
+      <button class="admin-tab" onclick="adminTab('announce')">Bejelentés</button>
+    </div>
+    <div id="admin-pane-overview" class="admin-tab-pane active"></div>
+    <div id="admin-pane-users" class="admin-tab-pane"></div>
+    <div id="admin-pane-channels" class="admin-tab-pane"></div>
+    <div id="admin-pane-announce" class="admin-tab-pane"></div>
+    <div class="modal-actions" style="margin-top:1rem">
+      <button class="btn-ghost" onclick="closeModal('modal-admin')">Bezárás</button>
+    </div>
+  </div>
+</div>
+
 <div id="lightbox" onclick="closeLb()"><img id="lb-img" src="" alt=""></div>
 
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────
-const ENDPOINT   = 'https://cloud.appwrite.io/v1';
-const PROJECT_ID = 'YOUR_PROJECT_ID';     // ← cseréld ki
-const DB_ID      = 'YOUR_DATABASE_ID';    // ← cseréld ki
-const BUCKET_ID  = 'YOUR_BUCKET_ID';      // ← cseréld ki
-const DOMAIN     = '@feleles.local';
-
+const DOMAIN = '@feleles.local';
 const GROUPS = [
   { id:'global', label:'GL', name:'Globális',   sub:'Mindenki számára' },
   { id:'group1', label:'G1', name:'1. csoport', sub:'' },
   { id:'group2', label:'G2', name:'2. csoport', sub:'' },
 ];
-
 const DEFAULT_CHANS = [
   {name:'általános',         group:'global', desc:'Általános osztálybeszélgetés'},
   {name:'bejelentések',      group:'global', desc:'Fontos hírek és bejelentések'},
@@ -594,467 +491,508 @@ const DEFAULT_CHANS = [
   {name:'általános',         group:'group2', desc:'Általános'},
   {name:'házifeladat',       group:'group2', desc:'HF megbeszélés'},
 ];
-
 const QUICK_EMOJIS = ['👍','❤️','😂','😮','😢','🔥'];
 
-// ── PREVIEW DATA ────────────────────────────────────────────────
-const PREV_MSGS = [
-  {$id:'p1',user_id:'u1',user_name:'Kovács Balázs',content:'Hali! Mikor kell beadni a matek ZH-t?',$createdAt:new Date(Date.now()-3600000*25).toISOString(),file_ids:null},
-  {$id:'p2',user_id:'u2',user_name:'Nagy Péter',   content:'Szerintem jövő kedden, de nem vagyok 100%-ig biztos.',$createdAt:new Date(Date.now()-3600000*24).toISOString(),file_ids:null},
-  {$id:'p3',user_id:'u1',user_name:'Kovács Balázs',content:'Ja tényleg. BTW a **2. feladatot** valaki megoldotta már?',$createdAt:new Date(Date.now()-3600000*23).toISOString(),file_ids:null},
-  {$id:'p4',user_id:'u3',user_name:'Tóth Anna',    content:'Én igen! Így csináltam:\n```\nfor i in range(1, n+1):\n    print(i)\n```',$createdAt:new Date(Date.now()-7200).toISOString(),file_ids:null},
-  {$id:'p5',user_id:'u2',user_name:'Nagy Péter',   content:'> Én igen!\n\nNice, én még küzdök a 3-assal 😅',$createdAt:new Date(Date.now()-3600).toISOString(),file_ids:null},
-  {$id:'p6',user_id:'u3',user_name:'Tóth Anna',    content:'Mindenki csinálja meg maga a ZH előtt! 💪',$createdAt:new Date(Date.now()-900).toISOString(),file_ids:null},
+// ── PREVIEW USERS ────────────────────────────────────────────────
+const PREVIEW_USERS = [
+  {$id:'u1', name:'Kovács Balázs', email:'kovacs.balazs@feleles.local', labels:[], color:'#6b9fd4'},
+  {$id:'u2', name:'Nagy Péter',    email:'nagy.peter@feleles.local',    labels:[], color:'#4caf7d'},
+  {$id:'u3', name:'Tóth Anna',     email:'toth.anna@feleles.local',     labels:[], color:'#d4935a'},
+  {$id:'u4', name:'Szabó Márk',    email:'szabo.mark@feleles.local',    labels:[], color:'#9b72cf'},
+  {$id:'admin1', name:'Tanár Úr',  email:'admin@feleles.local',         labels:['admin'], color:'#c8b89a'},
 ];
-const PREV_REACTS = {
+
+// ── PREVIEW SEED MSGS ────────────────────────────────────────────
+const SEED_MSGS = {
+  'programozás-global': [
+    {$id:'p1',user_id:'u1',user_name:'Kovács Balázs',content:'Hali! Mikor kell beadni a matek ZH-t?',$createdAt:new Date(Date.now()-3600000*25).toISOString()},
+    {$id:'p2',user_id:'u2',user_name:'Nagy Péter',content:'Szerintem jövő kedden, de nem vagyok 100%-ig biztos.',$createdAt:new Date(Date.now()-3600000*24).toISOString()},
+    {$id:'p3',user_id:'u1',user_name:'Kovács Balázs',content:'Ja tényleg. BTW a **2. feladatot** valaki megoldotta már?',$createdAt:new Date(Date.now()-3600000*23).toISOString()},
+    {$id:'p4',user_id:'u3',user_name:'Tóth Anna',content:'Én igen! Így csináltam:\n```\nfor i in range(1, n+1):\n    print(i)\n```',$createdAt:new Date(Date.now()-7200).toISOString()},
+    {$id:'p5',user_id:'u2',user_name:'Nagy Péter',content:'> Én igen!\n\nNice, én még küzdök a 3-assal 😅',$createdAt:new Date(Date.now()-3600).toISOString()},
+    {$id:'p6',user_id:'u3',user_name:'Tóth Anna',content:'Mindenki csinálja meg maga a ZH előtt! 💪',$createdAt:new Date(Date.now()-900).toISOString()},
+  ],
+  'általános-global': [
+    {$id:'g1',user_id:'u4',user_name:'Szabó Márk',content:'Holnap van kirándulás, ne felejtsétek el a cuccot! 🎒',$createdAt:new Date(Date.now()-3600000*2).toISOString()},
+    {$id:'g2',user_id:'u1',user_name:'Kovács Balázs',content:'Köszönjük a figyelmeztetést 👍',$createdAt:new Date(Date.now()-3600000).toISOString()},
+  ],
+};
+const SEED_REACTS = {
   p3:[{emoji:'👍',user_id:'u2'},{emoji:'👍',user_id:'u3'}],
   p4:[{emoji:'❤️',user_id:'u1'},{emoji:'🔥',user_id:'u2'}],
   p6:[{emoji:'💪',user_id:'u1'},{emoji:'💪',user_id:'u2'},{emoji:'💪',user_id:'u3'}],
 };
 
-// ── APPWRITE ────────────────────────────────────────────────────
-const {Client,Account,Databases,Storage,ID,Query} = Appwrite;
-const client  = new Client().setEndpoint(ENDPOINT).setProject(PROJECT_ID);
-const account = new Account(client);
-const db      = new Databases(client);
-const storage = new Storage(client);
+// ── STATE ────────────────────────────────────────────────────────
+let user = null, isAdmin = false;
+let curGroup = null, curChan = null;
+let channels = [], chanToDel = null;
+// In-memory storage: {chanKey: [{msg}]}
+let msgStore = {};
+let reactStore = {}; // {msgId: [{emoji, user_id}]}
 
-// ── STATE ───────────────────────────────────────────────────────
-let user=null, isAdmin=false, isPrev=false;
-let curGroup=null, curChan=null;
-let channels=[], pendingFiles=[], rtUnsub=null, chanToDel=null;
+// ── INIT ─────────────────────────────────────────────────────────
+setTimeout(() => {
+  document.getElementById('loading').classList.add('hidden');
+  setTimeout(() => document.getElementById('loading').remove(), 400);
+}, 400);
 
-// ── BOOT ────────────────────────────────────────────────────────
-(async()=>{
-  try { user=await account.get(); await bootApp(); }
-  catch(e){ hideLoading(); }
-})();
+function enterPreview(role) {
+  const isAdminRole = role === 'admin';
+  user = isAdminRole
+    ? {$id:'admin1', name:'Tanár Úr', email:'admin@feleles.local', labels:['admin'], color:'#c8b89a'}
+    : {$id:'preview', name:'Te (előnézet)', email:'preview@feleles.local', labels:[], color:'#c8b89a'};
+  isAdmin = isAdminRole;
 
-function hideLoading(){const el=document.getElementById('loading');el.classList.add('hidden');setTimeout(()=>el.remove(),400);}
-
-// ── AUTH ────────────────────────────────────────────────────────
-async function login(){
-  const btn=document.getElementById('login-btn');
-  const u=document.getElementById('login-user').value.trim();
-  const p=document.getElementById('login-pw').value;
-  const err=document.getElementById('login-err');
-  err.textContent='';
-  if(!u||!p){err.textContent='Töltsd ki mindkét mezőt.';return;}
-  btn.disabled=true; btn.textContent='Belépés…';
-  try{
-    const email=u.includes('@')?u:u+DOMAIN;
-    await account.createEmailPasswordSession(email,p);
-    user=await account.get();
-    await bootApp();
-  }catch(e){err.textContent='Hibás felhasználónév vagy jelszó.';btn.disabled=false;btn.textContent='Bejelentkezés';}
-}
-async function logout(){try{await account.deleteSession('current');}catch(e){}location.reload();}
-
-function enterPreview(){
-  isPrev=true;
-  document.getElementById('screen-login').style.display='none';
-  document.getElementById('app').style.display='flex';
-  document.getElementById('prev-banner').style.display='block';
+  document.getElementById('screen-login').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('prev-banner').style.display = 'block';
   document.getElementById('app').classList.add('has-banner');
-  const av=document.getElementById('user-av');
-  av.textContent='👁'; av.style.fontSize='14px';
-  document.getElementById('u-name').textContent='Előnézet';
-  document.getElementById('u-role').textContent='csak olvasás';
-  document.getElementById('compose-box').style.display='none';
-  document.getElementById('prev-note').style.display='block';
-  document.getElementById('md-toolbar').style.display='none';
-  channels=DEFAULT_CHANS.map((c,i)=>({$id:'prev-'+i,name:c.name,group:c.group,description:c.desc}));
+  document.getElementById('prev-role-label').textContent = isAdminRole ? '⭐ admin' : '👤 tanuló';
+
+  const av = document.getElementById('user-av');
+  av.textContent = user.name.substring(0,2).toUpperCase();
+  if (isAdminRole) av.classList.add('admin-av');
+  document.getElementById('u-name').textContent = user.name;
+  document.getElementById('u-role').textContent = isAdminRole ? '⭐ admin' : 'tanuló';
+
+  if (isAdminRole) {
+    document.getElementById('admin-add-wrap').style.display = 'block';
+    document.getElementById('admin-panel-wrap').style.display = 'block';
+  }
+
+  // Init channels
+  channels = DEFAULT_CHANS.map((c, i) => ({
+    $id: 'ch-' + i,
+    name: c.name,
+    group: c.group,
+    description: c.desc,
+  }));
+
+  // Seed messages into store
+  msgStore = {};
+  reactStore = {};
+  Object.entries(SEED_MSGS).forEach(([key, msgs]) => {
+    msgStore[key] = msgs.map(m => ({...m}));
+  });
+  Object.entries(SEED_REACTS).forEach(([msgId, reacts]) => {
+    reactStore[msgId] = [...reacts];
+  });
+
   buildGroupCards();
-  // auto-open programozás channel in preview
-  showGroupPanel(); // ensure groups panel is shown first
-  const progChan=channels.find(c=>c.name==='programozás'&&c.group==='global');
-  if(progChan){
+
+  // Auto-open programozás in global
+  showGroupPanel();
+  const progChan = channels.find(c => c.name === 'programozás' && c.group === 'global');
+  if (progChan) {
     selectGroup('global');
     showChanPanel('global');
     openChan(progChan);
   }
-  hideLoading();
 }
-function exitPreview(){location.reload();}
-
-// ── BOOT APP ────────────────────────────────────────────────────
-async function bootApp(){
-  isAdmin=(user.labels||[]).includes('admin');
-  document.getElementById('screen-login').style.display='none';
-  document.getElementById('app').style.display='flex';
-  const ini=(user.name||user.email).substring(0,2).toUpperCase();
-  document.getElementById('user-av').textContent=ini;
-  document.getElementById('u-name').textContent=user.name||user.email.split('@')[0];
-  document.getElementById('u-role').textContent=isAdmin?'⭐ admin':'tanuló';
-  if(isAdmin) document.getElementById('admin-add-wrap').style.display='block';
-  buildGroupCards();
-  await loadChans();
-  // Re-render cards after channels load (for sub-count)
-  buildGroupCards();
-  hideLoading();
+function exitPreview() { location.reload(); }
+function login() {
+  document.getElementById('login-err').textContent = 'Ez egy előnézet — háttérrendszer nincs csatlakoztatva. Használd az előnézet gombokat!';
 }
 
-// ── SIDEBAR PANEL NAVIGATION ────────────────────────────────────
-function showGroupPanel(){
+// ── SIDEBAR NAV ──────────────────────────────────────────────────
+function showGroupPanel() {
   document.getElementById('panel-groups').classList.remove('pushed');
   document.getElementById('panel-chans').classList.remove('visible');
-  document.getElementById('sb-title').textContent='Osztálychat';
-  document.getElementById('sb-sub').textContent='Válassz csatornát';
+  document.getElementById('sb-title').textContent = 'Osztálychat';
+  document.getElementById('sb-sub').textContent = 'Válassz csatornát';
 }
-
-function showChanPanel(gid){
-  curGroup=gid;
-  const g=GROUPS.find(x=>x.id===gid);
-  document.getElementById('sb-title').textContent=g.name;
-  document.getElementById('sb-sub').textContent=g.sub||'Csatornák';
-  document.getElementById('chan-section-label').textContent=`${g.name} csatornái`;
+function showChanPanel(gid) {
+  curGroup = gid;
+  const g = GROUPS.find(x => x.id === gid);
+  document.getElementById('sb-title').textContent = g.name;
+  document.getElementById('sb-sub').textContent = g.sub || 'Csatornák';
+  document.getElementById('chan-section-label').textContent = `${g.name} csatornái`;
   document.getElementById('panel-groups').classList.add('pushed');
   document.getElementById('panel-chans').classList.add('visible');
-  // Update new-grp select
-  document.getElementById('new-grp').value=gid;
+  document.getElementById('new-grp').value = gid;
   buildChanList();
-  // mark active card
-  document.querySelectorAll('.grp-card').forEach(c=>c.classList.toggle('active',c.dataset.gid===gid));
+  document.querySelectorAll('.grp-card').forEach(c => c.classList.toggle('active', c.dataset.gid === gid));
 }
+function selectGroup(gid) { curGroup = gid; }
 
-// ── GROUPS ──────────────────────────────────────────────────────
-function buildGroupCards(){
-  const panel=document.getElementById('panel-groups'); panel.innerHTML='';
-  const sel=document.getElementById('new-grp'); sel.innerHTML='';
-  GROUPS.forEach((g,i)=>{
-    // count channels per group
-    const count=channels.filter(c=>c.group===g.id).length;
-    const card=document.createElement('div');
-    card.className='grp-card'+(curGroup===g.id?' active':'');
-    card.dataset.gid=g.id;
-    card.style.animationDelay=(i*40)+'ms';
-    card.innerHTML=`
+// ── GROUPS ────────────────────────────────────────────────────────
+function buildGroupCards() {
+  const panel = document.getElementById('panel-groups'); panel.innerHTML = '';
+  const sel = document.getElementById('new-grp'); sel.innerHTML = '';
+  GROUPS.forEach((g, i) => {
+    const count = channels.filter(c => c.group === g.id).length;
+    const card = document.createElement('div');
+    card.className = 'grp-card' + (curGroup === g.id ? ' active' : '');
+    card.dataset.gid = g.id;
+    card.style.animationDelay = (i * 40) + 'ms';
+    card.innerHTML = `
       <div class="grp-card-badge">${esc(g.label)}</div>
       <div class="grp-card-info">
         <div class="grp-card-name">${esc(g.name)}</div>
-        <div class="grp-card-sub">${count?count+' csatorna':'Nincs csatorna'}</div>
+        <div class="grp-card-sub">${count ? count + ' csatorna' : 'Nincs csatorna'}</div>
       </div>
-      <div class="grp-card-arrow">›</div>
-    `;
-    card.onclick=()=>showChanPanel(g.id);
+      <div class="grp-card-arrow">›</div>`;
+    card.onclick = () => showChanPanel(g.id);
     panel.appendChild(card);
-    const o=document.createElement('option');o.value=g.id;o.textContent=g.name;sel.appendChild(o);
+    const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; sel.appendChild(o);
   });
 }
 
-function selectGroup(gid){ curGroup=gid; }
-
-// ── CHANNELS ────────────────────────────────────────────────────
-async function loadChans(){
-  try{
-    const r=await db.listDocuments(DB_ID,'channels',[Query.limit(300),Query.orderAsc('name')]);
-    channels=r.documents;
-    if(channels.length===0&&isAdmin){await seedChans();const r2=await db.listDocuments(DB_ID,'channels',[Query.limit(300),Query.orderAsc('name')]);channels=r2.documents;}
-  }catch(e){toast('Hiba a channelok betöltésekor');}
-}
-async function seedChans(){
-  for(const c of DEFAULT_CHANS){
-    try{await db.createDocument(DB_ID,'channels',ID.unique(),{name:c.name,group:c.group,description:c.desc,created_by:user.$id});}catch(e){}
-  }
-}
-function buildChanList(){
-  const list=document.getElementById('chan-list'); list.innerHTML='';
-  const f=channels.filter(c=>c.group===curGroup);
-  if(!f.length){list.innerHTML='<div class="chan-empty">Nincs channel ebben a csoportban</div>';return;}
-  f.forEach((ch,i)=>{
-    const d=document.createElement('div');
-    d.className='chan-item'+(curChan?.$id===ch.$id?' active':'');
-    d.id='ci-'+ch.$id;
-    d.style.animationDelay=(i*30)+'ms';
-    d.innerHTML=`<span class="chan-hash">#</span><span class="chan-nm">${esc(ch.name)}</span>`;
-    if(isAdmin&&!isPrev){
-      const db2=document.createElement('button');
-      db2.className='chan-del'; db2.textContent='✕'; db2.title='Törlés';
-      db2.onclick=e=>{e.stopPropagation();openDelChan(ch);};
+// ── CHANNELS ─────────────────────────────────────────────────────
+function buildChanList() {
+  const list = document.getElementById('chan-list'); list.innerHTML = '';
+  const f = channels.filter(c => c.group === curGroup);
+  if (!f.length) { list.innerHTML = '<div class="chan-empty">Nincs channel ebben a csoportban</div>'; return; }
+  f.forEach((ch, i) => {
+    const d = document.createElement('div');
+    d.className = 'chan-item' + (curChan?.$id === ch.$id ? ' active' : '');
+    d.id = 'ci-' + ch.$id;
+    d.style.animationDelay = (i * 30) + 'ms';
+    d.innerHTML = `<span class="chan-hash">#</span><span class="chan-nm">${esc(ch.name)}</span>`;
+    if (isAdmin) {
+      const db2 = document.createElement('button');
+      db2.className = 'chan-del'; db2.textContent = '✕'; db2.title = 'Törlés';
+      db2.onclick = e => { e.stopPropagation(); openDelChan(ch); };
       d.appendChild(db2);
     }
-    d.onclick=()=>openChan(ch);
+    d.onclick = () => openChan(ch);
     list.appendChild(d);
   });
 }
-async function createChan(){
-  const name=document.getElementById('new-name').value.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-áéíóöőúüű]/g,'');
-  const desc=document.getElementById('new-desc').value.trim();
-  const grp=document.getElementById('new-grp').value;
-  if(!name){toast('Add meg a channel nevét!');return;}
-  try{
-    const doc=await db.createDocument(DB_ID,'channels',ID.unique(),{name,group:grp,description:desc,created_by:user.$id});
-    channels.push(doc); channels.sort((a,b)=>a.name.localeCompare(b.name));
-    closeModal('modal-add');
-    document.getElementById('new-name').value=''; document.getElementById('new-desc').value='';
-    buildGroupCards();
-    if(doc.group!==curGroup){ showChanPanel(doc.group); } else buildChanList();
-    openChan(doc); toast('Channel létrehozva!');
-  }catch(e){toast('Hiba a létrehozáskor');}
-}
-function openDelChan(ch){chanToDel=ch;document.getElementById('del-title').textContent=`"#${ch.name}" törlése`;openModal('modal-del');}
-async function delChanConfirm(){
-  if(!chanToDel) return;
-  try{
-    await db.deleteDocument(DB_ID,'channels',chanToDel.$id);
-    channels=channels.filter(c=>c.$id!==chanToDel.$id);
-    if(curChan?.$id===chanToDel.$id){curChan=null;showWelcome();}
-    chanToDel=null; closeModal('modal-del'); buildChanList(); buildGroupCards(); toast('Channel törölve');
-  }catch(e){toast('Hiba a törléskor');}
+
+function createChan() {
+  const name = document.getElementById('new-name').value.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-áéíóöőúüű]/g,'');
+  const desc = document.getElementById('new-desc').value.trim();
+  const grp = document.getElementById('new-grp').value;
+  if (!name) { toast('Add meg a channel nevét!'); return; }
+  const doc = { $id: 'ch-' + Date.now(), name, group: grp, description: desc };
+  channels.push(doc);
+  channels.sort((a, b) => a.name.localeCompare(b.name));
+  closeModal('modal-add');
+  document.getElementById('new-name').value = ''; document.getElementById('new-desc').value = '';
+  buildGroupCards();
+  if (doc.group !== curGroup) { showChanPanel(doc.group); } else buildChanList();
+  openChan(doc); toast('Channel létrehozva! (előnézet)');
 }
 
-// ── OPEN CHANNEL ────────────────────────────────────────────────
-async function openChan(ch){
-  if(curChan?.$id===ch.$id) return;
-  curChan=ch;
-  document.querySelectorAll('.chan-item').forEach(el=>el.classList.remove('active'));
-  document.getElementById('ci-'+ch.$id)?.classList.add('active');
-  document.getElementById('ct-name').textContent=ch.name;
-  document.getElementById('ct-desc').textContent=ch.description||'';
-  document.getElementById('welcome').style.display='none';
-  const cv=document.getElementById('chat-view'); cv.style.display='flex';
-  document.getElementById('msgs').innerHTML='';
-  document.getElementById('msg-input').value=''; autoResize(document.getElementById('msg-input'));
-  pendingFiles=[]; renderFilePrevs();
-  if(rtUnsub){rtUnsub();rtUnsub=null;}
-  if(isPrev) renderPrevMsgs();
-  else{await loadMsgs(ch.$id); subscribeRt(ch.$id);}
+function openDelChan(ch) { chanToDel = ch; document.getElementById('del-title').textContent = `"#${ch.name}" törlése`; openModal('modal-del'); }
+function delChanConfirm() {
+  if (!chanToDel) return;
+  channels = channels.filter(c => c.$id !== chanToDel.$id);
+  const key = chanKey(chanToDel);
+  delete msgStore[key];
+  if (curChan?.$id === chanToDel.$id) { curChan = null; showWelcome(); }
+  chanToDel = null; closeModal('modal-del'); buildChanList(); buildGroupCards(); toast('Channel törölve (előnézet)');
+}
+
+// ── OPEN CHANNEL ─────────────────────────────────────────────────
+function chanKey(ch) { return ch.name + '-' + ch.group; }
+
+function openChan(ch) {
+  if (curChan?.$id === ch.$id) return;
+  curChan = ch;
+  document.querySelectorAll('.chan-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('ci-' + ch.$id)?.classList.add('active');
+  document.getElementById('ct-name').textContent = ch.name;
+  document.getElementById('ct-desc').textContent = ch.description || '';
+  document.getElementById('welcome').style.display = 'none';
+  const cv = document.getElementById('chat-view'); cv.style.display = 'flex';
+  document.getElementById('msgs').innerHTML = '';
+  document.getElementById('msg-input').value = ''; autoResize(document.getElementById('msg-input'));
+  renderAllMsgs();
   scrollBot();
-  // On mobile, close sidebar after picking a channel
-  if(window.innerWidth<=480) document.getElementById('sidebar').classList.remove('mob-open');
+  if (window.innerWidth <= 480) document.getElementById('sidebar').classList.remove('mob-open');
 }
-function showWelcome(){document.getElementById('welcome').style.display='';document.getElementById('chat-view').style.display='none';}
+function showWelcome() { document.getElementById('welcome').style.display = ''; document.getElementById('chat-view').style.display = 'none'; }
 
-// ── PREVIEW MESSAGES ────────────────────────────────────────────
-function renderPrevMsgs(){
-  const wrap=document.getElementById('msgs'); wrap.innerHTML='';
-  let lastA=null,lastD=null;
-  PREV_MSGS.forEach(msg=>{
-    const ds=new Date(msg.$createdAt).toDateString();
-    if(ds!==lastD){wrap.insertAdjacentHTML('beforeend',`<div class="day-div">${fmtDate(msg.$createdAt)}</div>`);lastD=ds;lastA=null;}
-    const reacts=PREV_REACTS[msg.$id]||[];
-    renderMsg(msg,reacts,msg.user_id!==lastA,true);
-    lastA=msg.user_id;
+// ── MESSAGES ─────────────────────────────────────────────────────
+function renderAllMsgs() {
+  const wrap = document.getElementById('msgs'); wrap.innerHTML = '';
+  const key = chanKey(curChan);
+  const msgs = msgStore[key] || [];
+  let lastA = null, lastD = null;
+  msgs.forEach(msg => {
+    const ds = new Date(msg.$createdAt).toDateString();
+    if (ds !== lastD) { wrap.insertAdjacentHTML('beforeend', `<div class="day-div">${fmtDate(msg.$createdAt)}</div>`); lastD = ds; lastA = null; }
+    renderMsg(msg, reactStore[msg.$id] || [], msg.user_id !== lastA, false);
+    lastA = msg.user_id;
   });
 }
 
-// ── MESSAGES ────────────────────────────────────────────────────
-async function loadMsgs(chanId){
-  try{
-    const[mr,rr]=await Promise.all([
-      db.listDocuments(DB_ID,'messages',[Query.equal('channel_id',chanId),Query.orderAsc('$createdAt'),Query.limit(300)]),
-      db.listDocuments(DB_ID,'reactions',[Query.equal('channel_id',chanId),Query.limit(1000)])
-    ]);
-    const byMsg={};
-    rr.documents.forEach(r=>{(byMsg[r.message_id]=byMsg[r.message_id]||[]).push(r);});
-    const wrap=document.getElementById('msgs'); wrap.innerHTML='';
-    let lastA=null,lastD=null;
-    mr.documents.forEach(msg=>{
-      const ds=new Date(msg.$createdAt).toDateString();
-      if(ds!==lastD){wrap.insertAdjacentHTML('beforeend',`<div class="day-div">${fmtDate(msg.$createdAt)}</div>`);lastD=ds;lastA=null;}
-      const isFirst=msg.user_id!==lastA;
-      renderMsg(msg,byMsg[msg.$id]||[],isFirst);
-      lastA=msg.user_id;
-    });
-  }catch(e){toast('Hiba az üzenetek betöltésekor');}
-}
-
-function renderMsg(msg,reacts,isFirst,prevMode=false){
-  const wrap=document.getElementById('msgs');
-  const div=document.createElement('div');
-  div.className='msg-row'+(isFirst?' first':''); div.id='msg-'+msg.$id;
-  const ini=(msg.user_name||'?').substring(0,2).toUpperCase();
-  const avCol=isFirst?`<div class="msg-av-col"><div class="msg-av">${ini}</div></div>`:`<div class="msg-spacer"></div>`;
-  const meta=isFirst?`<div class="msg-meta"><span class="msg-author${prevMode?' preview-u':''}">${esc(msg.user_name||'?')}</span><span class="msg-time">${fmtTime(msg.$createdAt)}</span></div>`:'';
-  const body=parseMd(msg.content||'');
-
-  let atts='';
-  if(msg.file_ids){try{
-    const ids=JSON.parse(msg.file_ids),metas=msg.file_meta?JSON.parse(msg.file_meta):{};
-    if(ids.length){
-      atts='<div class="msg-atts">';
-      ids.forEach(fid=>{
-        const m=metas[fid]||{};
-        const url=storage.getFileView(BUCKET_ID,fid);
-        if((m.type||'').startsWith('image/')) atts+=`<img class="att-img" src="${url}" alt="${esc(m.name||'kép')}" loading="lazy" onclick="openLb('${url}')">`;
-        else if((m.type||'').startsWith('video/')) atts+=`<video class="att-vid" src="${url}" controls></video>`;
-        else atts+=`<a class="att-file" href="${url}" target="_blank" rel="noopener"><span class="att-file-icon">${fIcon(m.name||'')}</span><div><div class="att-file-name">${esc(m.name||fid)}</div><div class="att-file-size">${m.size?fmtSz(m.size):''}</div></div></a>`;
-      });
-      atts+='</div>';
-    }
-  }catch(e){}}
-
-  const reactsHtml=buildReacts(msg.$id,reacts,prevMode);
-  const canDel=!isPrev&&(isAdmin||msg.user_id===user?.$id);
-  const delBtn=canDel?`<button class="msg-act" onclick="delMsg('${msg.$id}')" title="Törlés">🗑️</button>`:'';
-  const reactBtn=!isPrev?`<button class="msg-act" onclick="toggleEpick(event,'${msg.$id}')" title="Reakció">😊</button>`:'';
-
-  div.innerHTML=`${avCol}<div class="msg-content">${meta}<div class="msg-body">${body}</div>${atts}<div class="msg-reacts" id="r-${msg.$id}">${reactsHtml}</div></div><div class="msg-actions">${reactBtn}${delBtn}</div><div class="epick" id="ep-${msg.$id}">${QUICK_EMOJIS.map(e=>`<button class="emoji-opt" onclick="addReact('${msg.$id}','${e}')">${e}</button>`).join('')}</div>`;
+function renderMsg(msg, reacts, isFirst, isNew = false) {
+  const wrap = document.getElementById('msgs');
+  const div = document.createElement('div');
+  div.className = 'msg-row' + (isFirst ? ' first' : '') + (isNew ? ' new-msg' : '');
+  div.id = 'msg-' + msg.$id;
+  const ini = (msg.user_name || '?').substring(0, 2).toUpperCase();
+  const isSelf = msg.user_id === user?.$id;
+  const isMsgAdmin = (PREVIEW_USERS.find(u => u.$id === msg.user_id)?.labels || []).includes('admin');
+  const avClass = isSelf ? ' self-av' : '';
+  const avCol = isFirst ? `<div class="msg-av-col"><div class="msg-av${avClass}">${ini}</div></div>` : `<div class="msg-spacer"></div>`;
+  const authorClass = isSelf ? ' self-name' : isMsgAdmin ? ' admin-name' : '';
+  const meta = isFirst ? `<div class="msg-meta"><span class="msg-author${authorClass}">${esc(msg.user_name || '?')}${isMsgAdmin ? ' ⭐' : ''}</span><span class="msg-time">${fmtTime(msg.$createdAt)}</span></div>` : '';
+  const body = parseMd(msg.content || '');
+  const reactsHtml = buildReacts(msg.$id, reacts);
+  const canDel = isAdmin || isSelf;
+  const delBtn = canDel ? `<button class="msg-act" onclick="delMsg('${msg.$id}')" title="Törlés">🗑️</button>` : '';
+  const reactBtn = `<button class="msg-act" onclick="toggleEpick(event,'${msg.$id}')" title="Reakció">😊</button>`;
+  div.innerHTML = `${avCol}<div class="msg-content">${meta}<div class="msg-body">${body}</div><div class="msg-reacts" id="r-${msg.$id}">${reactsHtml}</div></div><div class="msg-actions">${reactBtn}${delBtn}</div><div class="epick" id="ep-${msg.$id}">${QUICK_EMOJIS.map(e => `<button class="emoji-opt" onclick="addReact('${msg.$id}','${e}')">${e}</button>`).join('')}</div>`;
   wrap.appendChild(div);
 }
 
-function buildReacts(msgId,reacts,prevMode){
-  const g={};
-  reacts.forEach(r=>{(g[r.emoji]=g[r.emoji]||[]).push(r);});
-  return Object.entries(g).map(([emoji,arr])=>{
-    const mine=!prevMode&&arr.some(r=>r.user_id===user?.$id);
-    const myId=mine?arr.find(r=>r.user_id===user.$id).$id:null;
-    const oc=prevMode?`onclick="exitPreview()"`:(`onclick="toggleReact('${msgId}','${emoji}','${myId||''}')"`)
-    return `<button class="react-pill ${mine?'mine':''}" ${oc}>${emoji}<span class="react-cnt">${arr.length}</span></button>`;
+function buildReacts(msgId, reacts) {
+  const g = {};
+  reacts.forEach(r => { (g[r.emoji] = g[r.emoji] || []).push(r); });
+  return Object.entries(g).map(([emoji, arr]) => {
+    const mine = arr.some(r => r.user_id === user?.$id);
+    const names = arr.map(r => {
+      const u = PREVIEW_USERS.find(u => u.$id === r.user_id);
+      return u ? u.name.split(' ')[0] : r.user_id;
+    }).join(', ');
+    return `<button class="react-pill ${mine ? 'mine' : ''}" title="${esc(names)}" onclick="toggleReact('${msgId}','${emoji}')">${emoji}<span class="react-cnt">${arr.length}</span></button>`;
   }).join('');
 }
 
-async function addReact(msgId,emoji){
+// ── SEND ─────────────────────────────────────────────────────────
+function sendMessage() {
+  const inp = document.getElementById('msg-input');
+  const content = inp.value.trim();
+  if (!content || !curChan) return;
+  const key = chanKey(curChan);
+  if (!msgStore[key]) msgStore[key] = [];
+  const msg = {
+    $id: 'msg-' + Date.now(),
+    user_id: user.$id,
+    user_name: user.name,
+    content,
+    $createdAt: new Date().toISOString(),
+  };
+  msgStore[key].push(msg);
+  // Check if we need a date divider
+  const wrap = document.getElementById('msgs');
+  const msgs = msgStore[key];
+  const prev = msgs[msgs.length - 2];
+  if (!prev || new Date(prev.$createdAt).toDateString() !== new Date(msg.$createdAt).toDateString()) {
+    wrap.insertAdjacentHTML('beforeend', `<div class="day-div">${fmtDate(msg.$createdAt)}</div>`);
+  }
+  const isFirst = !prev || prev.user_id !== msg.user_id;
+  renderMsg(msg, [], isFirst, true);
+  inp.value = ''; inp.style.height = '';
+  scrollBot();
+}
+
+// ── DELETE MSG ────────────────────────────────────────────────────
+function delMsg(msgId) {
+  if (!confirm('Törlöd ezt az üzenetet?')) return;
+  const key = chanKey(curChan);
+  if (msgStore[key]) msgStore[key] = msgStore[key].filter(m => m.$id !== msgId);
+  delete reactStore[msgId];
+  document.getElementById('msg-' + msgId)?.remove();
+}
+
+// ── REACTIONS ────────────────────────────────────────────────────
+function addReact(msgId, emoji) {
   closeEpicks();
-  try{
-    const ex=await db.listDocuments(DB_ID,'reactions',[Query.equal('message_id',msgId),Query.equal('user_id',user.$id),Query.equal('emoji',emoji),Query.limit(1)]);
-    if(ex.total>0) await db.deleteDocument(DB_ID,'reactions',ex.documents[0].$id);
-    else await db.createDocument(DB_ID,'reactions',ID.unique(),{message_id:msgId,channel_id:curChan.$id,user_id:user.$id,user_name:user.name,emoji});
-    await refreshReacts(msgId);
-  }catch(e){}
+  if (!reactStore[msgId]) reactStore[msgId] = [];
+  const existing = reactStore[msgId].findIndex(r => r.user_id === user.$id && r.emoji === emoji);
+  if (existing >= 0) reactStore[msgId].splice(existing, 1);
+  else reactStore[msgId].push({ emoji, user_id: user.$id });
+  refreshReacts(msgId);
 }
-async function toggleReact(msgId,emoji,rid){
-  try{
-    if(rid&&rid!=='null') await db.deleteDocument(DB_ID,'reactions',rid);
-    else await db.createDocument(DB_ID,'reactions',ID.unique(),{message_id:msgId,channel_id:curChan.$id,user_id:user.$id,user_name:user.name,emoji});
-    await refreshReacts(msgId);
-  }catch(e){}
+function toggleReact(msgId, emoji) {
+  addReact(msgId, emoji);
 }
-async function refreshReacts(msgId){
-  try{const r=await db.listDocuments(DB_ID,'reactions',[Query.equal('message_id',msgId),Query.limit(200)]);const el=document.getElementById('r-'+msgId);if(el)el.innerHTML=buildReacts(msgId,r.documents,false);}catch(e){}
-}
-async function delMsg(msgId){
-  if(!confirm('Törlöd ezt az üzenetet?')) return;
-  try{
-    const msg=await db.getDocument(DB_ID,'messages',msgId);
-    if(msg.file_ids){for(const fid of JSON.parse(msg.file_ids)){try{await storage.deleteFile(BUCKET_ID,fid);}catch(e){}}}
-    await db.deleteDocument(DB_ID,'messages',msgId);
-    document.getElementById('msg-'+msgId)?.remove();
-  }catch(e){toast('Hiba a törléskor');}
+function refreshReacts(msgId) {
+  const el = document.getElementById('r-' + msgId);
+  if (el) el.innerHTML = buildReacts(msgId, reactStore[msgId] || []);
 }
 
-// ── SEND ────────────────────────────────────────────────────────
-async function sendMessage(){
-  if(isPrev) return;
-  const inp=document.getElementById('msg-input');
-  const btn=document.getElementById('send-btn');
-  const content=inp.value.trim();
-  if(!content&&!pendingFiles.length) return;
-  if(!curChan) return;
-  btn.disabled=true;
-  try{
-    let fileIds=[],fileMeta={};
-    for(const f of pendingFiles){
-      const up=await storage.createFile(BUCKET_ID,ID.unique(),f);
-      fileIds.push(up.$id); fileMeta[up.$id]={name:f.name,type:f.type,size:f.size};
-    }
-    await db.createDocument(DB_ID,'messages',ID.unique(),{
-      channel_id:curChan.$id, user_id:user.$id,
-      user_name:user.name||user.email.split('@')[0],
-      content:content||'',
-      file_ids:fileIds.length?JSON.stringify(fileIds):null,
-      file_meta:Object.keys(fileMeta).length?JSON.stringify(fileMeta):null,
-    });
-    inp.value=''; inp.style.height=''; pendingFiles=[]; renderFilePrevs();
-  }catch(e){toast('Hiba az üzenet küldésekor');}
-  btn.disabled=false; inp.focus();
-}
-
-// ── REALTIME ────────────────────────────────────────────────────
-function subscribeRt(chanId){
-  const unsub=client.subscribe([
-    `databases.${DB_ID}.collections.messages.documents`,
-    `databases.${DB_ID}.collections.reactions.documents`,
-  ],ev=>{
-    const doc=ev.payload, type=ev.events[0]||'';
-    if(type.includes('messages')){
-      if(doc.channel_id!==chanId) return;
-      if(type.includes('.create')){if(document.getElementById('msg-'+doc.$id)) return;renderMsg(doc,[],true);scrollBot();}
-      else if(type.includes('.delete')) document.getElementById('msg-'+doc.$id)?.remove();
-    }else if(type.includes('reactions')){
-      if(doc.channel_id!==chanId) return;
-      refreshReacts(doc.message_id);
-    }
+// ── ADMIN PANEL ───────────────────────────────────────────────────
+function adminTab(tab) {
+  document.querySelectorAll('.admin-tab').forEach((t, i) => {
+    const tabs = ['overview','users','channels','announce'];
+    t.classList.toggle('active', tabs[i] === tab);
   });
-  rtUnsub=unsub;
+  document.querySelectorAll('.admin-tab-pane').forEach(p => p.classList.remove('active'));
+  const pane = document.getElementById('admin-pane-' + tab);
+  pane.classList.add('active');
+  if (tab === 'overview') renderAdminOverview();
+  else if (tab === 'users') renderAdminUsers();
+  else if (tab === 'channels') renderAdminChannels();
+  else if (tab === 'announce') renderAdminAnnounce();
 }
 
-// ── FILES ───────────────────────────────────────────────────────
-function handleFiles(fl){
-  for(const f of fl){if(f.size>50*1024*1024){toast(`${f.name}: max 50MB`);continue;}pendingFiles.push(f);}
-  document.getElementById('file-input').value=''; renderFilePrevs();
-}
-function renderFilePrevs(){
-  const c=document.getElementById('file-prevs'); c.innerHTML='';
-  pendingFiles.forEach((f,i)=>{
-    const chip=document.createElement('div'); chip.className='file-chip';
-    if(f.type.startsWith('image/')) chip.innerHTML=`<img src="${URL.createObjectURL(f)}">`;
-    else if(f.type.startsWith('video/')) chip.innerHTML=`<video src="${URL.createObjectURL(f)}"></video>`;
-    else chip.innerHTML=`<span style="font-size:16px">${fIcon(f.name)}</span>`;
-    chip.innerHTML+=`<span class="file-chip-nm">${esc(f.name)}</span>`;
-    const rm=document.createElement('button'); rm.className='file-chip-rm'; rm.textContent='✕';
-    rm.onclick=()=>{pendingFiles.splice(i,1);renderFilePrevs();};
-    chip.appendChild(rm); c.appendChild(chip);
+function renderAdminOverview() {
+  const pane = document.getElementById('admin-pane-overview');
+  const totalMsgs = Object.values(msgStore).reduce((s, arr) => s + arr.length, 0);
+  const totalChans = channels.length;
+  const totalUsers = PREVIEW_USERS.length;
+  // collect last 5 msgs across all channels
+  const allMsgs = [];
+  Object.entries(msgStore).forEach(([key, msgs]) => {
+    msgs.forEach(m => allMsgs.push({...m, chanKey: key}));
   });
+  allMsgs.sort((a, b) => new Date(b.$createdAt) - new Date(a.$createdAt));
+  const recent = allMsgs.slice(0, 5);
+  pane.innerHTML = `
+    <div class="admin-stats-grid">
+      <div class="admin-stat"><div class="admin-stat-val">${totalMsgs}</div><div class="admin-stat-label">Üzenet (memória)</div></div>
+      <div class="admin-stat"><div class="admin-stat-val">${totalChans}</div><div class="admin-stat-label">Channel</div></div>
+      <div class="admin-stat"><div class="admin-stat-val">${totalUsers}</div><div class="admin-stat-label">Felhasználó</div></div>
+      <div class="admin-stat"><div class="admin-stat-val">${GROUPS.length}</div><div class="admin-stat-label">Csoport</div></div>
+    </div>
+    <div class="admin-section-title">Legutóbbi üzenetek</div>
+    ${recent.map(m => `<div class="admin-recent-msg">
+      <div class="admin-recent-author">${esc(m.user_name)}</div>
+      <div class="admin-recent-text">${esc(m.content.replace(/\n/g,' '))}</div>
+      <div class="admin-recent-chan">#${esc(m.chanKey.split('-')[0])}</div>
+    </div>`).join('') || '<div style="font-size:12px;color:var(--muted);padding:8px 0">Nincs üzenet</div>'}
+  `;
 }
 
-// ── MARKDOWN ────────────────────────────────────────────────────
-function parseMd(t){
-  let h=esc(t);
-  h=h.replace(/```([\s\S]*?)```/g,(_,c)=>`<pre><code>${c.trim()}</code></pre>`);
-  h=h.replace(/`([^`]+)`/g,(_,c)=>`<code>${c}</code>`);
-  h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-  h=h.replace(/\*(.+?)\*/g,'<em>$1</em>');
-  h=h.replace(/~~(.+?)~~/g,'<del>$1</del>');
-  h=h.replace(/^&gt; (.+)$/gm,'<blockquote>$1</blockquote>');
-  h=h.replace(/^- (.+)$/gm,'<li>$1</li>');
-  h=h.replace(/(<li>[\s\S]+?<\/li>)/g,'<ul>$1</ul>');
-  h=h.replace(/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
-  h=h.replace(/\n/g,'<br>');
+function renderAdminUsers() {
+  const pane = document.getElementById('admin-pane-users');
+  pane.innerHTML = `
+    <div class="admin-section-title" style="margin-bottom:10px">Előnézet felhasználók</div>
+    ${PREVIEW_USERS.map(u => {
+      const isAdm = (u.labels||[]).includes('admin');
+      return `<div class="admin-user-row">
+        <div class="admin-user-av" style="background:${u.color}22;border:.5px solid ${u.color}44;color:${u.color}">${u.name.substring(0,2).toUpperCase()}</div>
+        <div class="admin-user-info">
+          <div class="admin-user-name">${esc(u.name)}</div>
+          <div class="admin-user-email">${esc(u.email)}</div>
+        </div>
+        <span class="admin-badge ${isAdm ? 'admin' : 'student'}">${isAdm ? '⭐ admin' : 'tanuló'}</span>
+      </div>`;
+    }).join('')}
+    <p style="font-size:11px;color:var(--muted);margin-top:10px">Ez az előnézet adatkészlete. Élesben az Appwrite-ban kezelt felhasználók jelennek meg.</p>
+  `;
+}
+
+function renderAdminChannels() {
+  const pane = document.getElementById('admin-pane-channels');
+  pane.innerHTML = `
+    <div class="admin-section-title" style="margin-bottom:10px">Összes channel (${channels.length})</div>
+    ${channels.map(ch => {
+      const msgCount = (msgStore[chanKey(ch)] || []).length;
+      const g = GROUPS.find(x => x.id === ch.group);
+      return `<div class="admin-user-row" style="cursor:pointer" onclick="closeModal('modal-admin');showChanPanel('${ch.group}');openChan(${JSON.stringify({...ch}).replace(/'/g,'&#39;')})">
+        <div class="admin-user-av" style="background:rgba(200,184,154,.1);border:.5px solid rgba(200,184,154,.2);color:var(--accent);font-size:12px">#</div>
+        <div class="admin-user-info">
+          <div class="admin-user-name">${esc(ch.name)}</div>
+          <div class="admin-user-email">${esc(g?.name || ch.group)} · ${msgCount} üzenet</div>
+        </div>
+        <button class="admin-action-btn danger" onclick="event.stopPropagation();openDelChan({$id:'${ch.$id}',name:'${ch.name}',group:'${ch.group}'})">Törlés</button>
+      </div>`;
+    }).join('')}
+    <button class="btn-full" style="margin-top:10px" onclick="closeModal('modal-admin');openAddChan()">＋ Új channel létrehozása</button>
+  `;
+}
+
+function renderAdminAnnounce() {
+  const pane = document.getElementById('admin-pane-announce');
+  // find bejelentések channel
+  const annChan = channels.find(c => c.name === 'bejelentések');
+  pane.innerHTML = `
+    <div class="admin-section-title">Bejelentés küldése</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Az üzenet a <strong style="color:var(--text)">#bejelentések</strong> channelbe kerül, adminként.</p>
+    <textarea class="admin-announce-area" id="announce-text" placeholder="Ide írd a bejelentést…"></textarea>
+    <button class="btn-full amber" onclick="sendAnnouncement()">📢 Bejelentés küldése</button>
+    <div style="margin-top:16px;padding:10px 12px;background:var(--bg3);border:.5px solid var(--border);border-radius:var(--radius-sm)">
+      <div style="font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">Gyors műveletek</div>
+      <button class="admin-action-btn" style="margin-right:6px;margin-bottom:6px" onclick="clearChanMsgs()">🗑️ Aktív channel törlése</button>
+      <button class="admin-action-btn" onclick="toast('Exportálás: nincs háttérrendszer az előnézetben')">📥 Üzenetek exportálása</button>
+    </div>
+  `;
+}
+
+function sendAnnouncement() {
+  const text = document.getElementById('announce-text').value.trim();
+  if (!text) { toast('Írd be a bejelentést!'); return; }
+  const annChan = channels.find(c => c.name === 'bejelentések' && c.group === 'global');
+  if (!annChan) { toast('Nincs #bejelentések channel!'); return; }
+  const key = chanKey(annChan);
+  if (!msgStore[key]) msgStore[key] = [];
+  msgStore[key].push({
+    $id: 'msg-' + Date.now(),
+    user_id: user.$id,
+    user_name: user.name,
+    content: '📢 **Bejelentés:** ' + text,
+    $createdAt: new Date().toISOString(),
+  });
+  document.getElementById('announce-text').value = '';
+  closeModal('modal-admin');
+  // navigate there
+  showChanPanel('global');
+  openChan(annChan);
+  toast('Bejelentés elküldve!');
+}
+
+function clearChanMsgs() {
+  if (!curChan) { toast('Nincs megnyitott channel!'); return; }
+  if (!confirm(`Törlöd az összes üzenetet a #${curChan.name} channelből?`)) return;
+  const key = chanKey(curChan);
+  msgStore[key] = [];
+  renderAllMsgs();
+  closeModal('modal-admin');
+  toast('Channel üzenetek törölve (előnézet)');
+}
+
+// ── MARKDOWN ─────────────────────────────────────────────────────
+function parseMd(t) {
+  let h = esc(t);
+  h = h.replace(/```([\s\S]*?)```/g, (_, c) => `<pre><code>${c.trim()}</code></pre>`);
+  h = h.replace(/`([^`]+)`/g, (_, c) => `<code>${c}</code>`);
+  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  h = h.replace(/~~(.+?)~~/g, '<del>$1</del>');
+  h = h.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+  h = h.replace(/^- (.+)$/gm, '<li>$1</li>');
+  h = h.replace(/(<li>[\s\S]+?<\/li>)/g, '<ul>$1</ul>');
+  h = h.replace(/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  h = h.replace(/\n/g, '<br>');
   return h;
 }
-function wrapSel(b,a){const ta=document.getElementById('msg-input');const s=ta.selectionStart,e=ta.selectionEnd;const sel=ta.value.substring(s,e)||'szöveg';ta.value=ta.value.substring(0,s)+b+sel+a+ta.value.substring(e);ta.selectionStart=s+b.length;ta.selectionEnd=s+b.length+sel.length;ta.focus();}
-function insertMd(b,a=''){const ta=document.getElementById('msg-input');const s=ta.selectionStart;const ls=ta.value.lastIndexOf('\n',s-1)+1;if(a){ta.value=ta.value.substring(0,s)+b+'\n'+a+ta.value.substring(s);ta.selectionStart=ta.selectionEnd=s+b.length+1;}else{ta.value=ta.value.substring(0,ls)+b+ta.value.substring(ls);ta.selectionStart=ta.selectionEnd=ls+b.length;}ta.focus();}
-function msgKeyDown(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}
-function autoResize(ta){ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,120)+'px';}
+function wrapSel(b, a) { const ta = document.getElementById('msg-input'); const s = ta.selectionStart, e = ta.selectionEnd; const sel = ta.value.substring(s, e) || 'szöveg'; ta.value = ta.value.substring(0, s) + b + sel + a + ta.value.substring(e); ta.selectionStart = s + b.length; ta.selectionEnd = s + b.length + sel.length; ta.focus(); }
+function insertMd(b, a = '') { const ta = document.getElementById('msg-input'); const s = ta.selectionStart; const ls = ta.value.lastIndexOf('\n', s - 1) + 1; if (a) { ta.value = ta.value.substring(0, s) + b + '\n' + a + ta.value.substring(s); ta.selectionStart = ta.selectionEnd = s + b.length + 1; } else { ta.value = ta.value.substring(0, ls) + b + ta.value.substring(ls); ta.selectionStart = ta.selectionEnd = ls + b.length; } ta.focus(); }
+function msgKeyDown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function autoResize(ta) { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'; }
 
-// ── EMOJI ───────────────────────────────────────────────────────
-function toggleEpick(e,msgId){e.stopPropagation();const p=document.getElementById('ep-'+msgId);const was=p.style.display==='flex';closeEpicks();if(!was)p.style.display='flex';}
-function closeEpicks(){document.querySelectorAll('.epick').forEach(p=>p.style.display='none');}
-document.addEventListener('click',closeEpicks);
+// ── EMOJI ─────────────────────────────────────────────────────────
+function toggleEpick(e, msgId) { e.stopPropagation(); const p = document.getElementById('ep-' + msgId); const was = p.style.display === 'flex'; closeEpicks(); if (!was) p.style.display = 'flex'; }
+function closeEpicks() { document.querySelectorAll('.epick').forEach(p => p.style.display = 'none'); }
+document.addEventListener('click', closeEpicks);
 
-// ── LIGHTBOX ────────────────────────────────────────────────────
-function openLb(url){document.getElementById('lb-img').src=url;document.getElementById('lightbox').classList.add('open');}
-function closeLb(){document.getElementById('lightbox').classList.remove('open');}
+// ── MODALS ────────────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); if (id === 'modal-admin') adminTab('overview'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
+function openAddChan() { openModal('modal-add'); }
 
-// ── MODALS ──────────────────────────────────────────────────────
-function openModal(id){document.getElementById(id).classList.add('open');}
-function closeModal(id){document.getElementById(id).classList.remove('open');}
-document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
-function openAddChan(){openModal('modal-add');}
+// ── TOAST ─────────────────────────────────────────────────────────
+let tT; function toast(msg) { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(tT); tT = setTimeout(() => el.classList.remove('show'), 3000); }
 
-// ── TOAST ───────────────────────────────────────────────────────
-let tT; function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>el.classList.remove('show'),3000);}
+// ── LIGHTBOX ──────────────────────────────────────────────────────
+function openLb(url) { document.getElementById('lb-img').src = url; document.getElementById('lightbox').classList.add('open'); }
+function closeLb() { document.getElementById('lightbox').classList.remove('open'); }
 
-// ── MOBILE NAV ──────────────────────────────────────────────────
-function mobileNav(tab){
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('nav-'+tab)?.classList.add('active');
-  if(tab==='chan') document.getElementById('sidebar').classList.add('mob-open');
+// ── MOBILE NAV ────────────────────────────────────────────────────
+function mobileNav(tab) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('nav-' + tab)?.classList.add('active');
+  if (tab === 'chan') document.getElementById('sidebar').classList.add('mob-open');
   else document.getElementById('sidebar').classList.remove('mob-open');
 }
 
-// ── UTILS ───────────────────────────────────────────────────────
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function fmtTime(iso){return new Date(iso).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'});}
-function fmtDate(iso){const d=new Date(iso),t=new Date(),y=new Date(t);y.setDate(t.getDate()-1);if(d.toDateString()===t.toDateString())return 'Ma';if(d.toDateString()===y.toDateString())return 'Tegnap';return d.toLocaleDateString('hu-HU',{year:'numeric',month:'long',day:'numeric'});}
-function fmtSz(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB';}
-function fIcon(n){const e=(n.split('.').pop()||'').toLowerCase();return{pdf:'📄',doc:'📝',docx:'📝',xls:'📊',xlsx:'📊',ppt:'📽️',pptx:'📽️',zip:'🗜️',rar:'🗜️',txt:'📃',mp3:'🎵',mp4:'🎬',mov:'🎬'}[e]||'📎';}
-function scrollBot(){const c=document.getElementById('msgs');setTimeout(()=>c.scrollTop=c.scrollHeight,60);}
+// ── UTILS ─────────────────────────────────────────────────────────
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function fmtTime(iso) { return new Date(iso).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' }); }
+function fmtDate(iso) { const d = new Date(iso), t = new Date(), y = new Date(t); y.setDate(t.getDate() - 1); if (d.toDateString() === t.toDateString()) return 'Ma'; if (d.toDateString() === y.toDateString()) return 'Tegnap'; return d.toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' }); }
+function scrollBot() { const c = document.getElementById('msgs'); setTimeout(() => c.scrollTop = c.scrollHeight, 60); }
 </script>
 </body>
 </html>
-
 <!-- All rights reserved. - Made by SPARFahejasCsiga (https://github.com/SPARFahejasCsiga) - 2026
  Design made by QuaternionDev (https://github.com/QuaternionDev)
-# v0.1-demo -->
+# v0.2-demo -->
