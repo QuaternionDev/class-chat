@@ -78,7 +78,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
 .preview-role-btn.admin:hover { background:var(--amber-bg); }
 
 /* ══ APP ══ */
-#app { display:none;height:100vh;flex-direction:row; }
+#app { display:flex;height:100vh;flex-direction:row; }
 #app.has-banner { padding-top:34px; }
 
 /* ── Sidebar ── */
@@ -299,41 +299,14 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
 
 <div class="loading-overlay" id="loading"><div class="spinner"></div></div>
 <div class="toast" id="toast"></div>
-<div class="preview-banner" id="prev-banner" style="display:none">
+<div class="preview-banner" id="prev-banner">
   Előnézet mód — nincs backend csatlakoztatva
   <span>·</span>
-  <span id="prev-role-label">tanuló</span>
-  <span>·</span>
-  <button class="exit-preview-btn" onclick="exitPreview()">Kilépés ↩</button>
-</div>
-
-<!-- ══ LOGIN ══ -->
-<div id="screen-login">
-  <div class="login-eyebrow">Széchenyi SZC · Osztálychat</div>
-  <h1 class="login-title">Osztály<br><em>Chat.</em></h1>
-  <p class="login-sub">Jelentkezz be az osztályfiókkal, hogy üzenetet küldhess és részt vegyél a csoportos beszélgetésekben.</p>
-  <div class="field"><label>Felhasználónév</label>
-    <input type="text" id="login-user" placeholder="kovacs.balazs" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('login-pw').focus()"/>
-  </div>
-  <div class="field"><label>Jelszó</label>
-    <input type="password" id="login-pw" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()"/>
-  </div>
-  <button class="btn-primary" id="login-btn" onclick="login()">Bejelentkezés</button>
-  <div class="login-err" id="login-err"></div>
-  <p style="font-size:11px;color:var(--muted);margin:1.5rem 0 .75rem;text-align:center">— előnézet fiók nélkül —</p>
-  <div class="preview-roles">
-    <button class="preview-role-btn student" onclick="enterPreview('student')">👤 Tanuló</button>
-    <button class="preview-role-btn admin" onclick="enterPreview('admin')">⭐ Admin</button>
-  </div>
-  <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:2rem;">
-    All rights reserved. · Made by <a href="https://github.com/SPARFahejasCsiga" style="color:var(--accent);text-decoration:none;">SPARFahejasCsiga</a> · 2026<br>
-    Design made by <a href="https://github.com/QuaternionDev" style="color:var(--accent);text-decoration:none;">QuaternionDev</a><br>
-    v0.2-demo
-  </p>
+  ⭐ admin
 </div>
 
 <!-- ══ APP ══ -->
-<div id="app">
+<div id="app" class="has-banner">
   <div id="sidebar">
     <div class="sb-header">
       <div class="sb-header-title" id="sb-title">Osztálychat</div>
@@ -362,7 +335,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); -web
         <div class="u-name" id="u-name">—</div>
         <div class="u-role" id="u-role">tanuló</div>
       </div>
-      <button class="logout-btn" onclick="exitPreview()" title="Kilépés">
+      <button class="logout-btn" style="display:none" title="Kilépés">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </button>
     </div>
@@ -534,7 +507,10 @@ let reactStore = {}; // {msgId: [{emoji, user_id}]}
 // ── INIT ─────────────────────────────────────────────────────────
 setTimeout(() => {
   document.getElementById('loading').classList.add('hidden');
-  setTimeout(() => document.getElementById('loading').remove(), 400);
+  setTimeout(() => {
+    document.getElementById('loading').remove();
+    enterPreview('admin');
+  }, 400);
 }, 400);
 
 function enterPreview(role) {
@@ -543,12 +519,6 @@ function enterPreview(role) {
     ? {$id:'admin1', name:'Tanár Úr', email:'admin@feleles.local', labels:['admin'], color:'#c8b89a'}
     : {$id:'preview', name:'Te (előnézet)', email:'preview@feleles.local', labels:[], color:'#c8b89a'};
   isAdmin = isAdminRole;
-
-  document.getElementById('screen-login').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
-  document.getElementById('prev-banner').style.display = 'block';
-  document.getElementById('app').classList.add('has-banner');
-  document.getElementById('prev-role-label').textContent = isAdminRole ? '⭐ admin' : '👤 tanuló';
 
   const av = document.getElementById('user-av');
   av.textContent = user.name.substring(0,2).toUpperCase();
@@ -589,6 +559,7 @@ function enterPreview(role) {
     showChanPanel('global');
     openChan(progChan);
   }
+
 }
 function exitPreview() { location.reload(); }
 function login() {
@@ -995,4 +966,4 @@ function scrollBot() { const c = document.getElementById('msgs'); setTimeout(() 
 </html>
 <!-- All rights reserved. - Made by SPARFahejasCsiga (https://github.com/SPARFahejasCsiga) - 2026
  Design made by QuaternionDev (https://github.com/QuaternionDev)
-# v0.2-demo -->
+# v0.2-demosp -->
