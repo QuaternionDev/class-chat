@@ -472,7 +472,7 @@ const PREVIEW_USERS = [
   {$id:'u2', name:'Nagy Péter',    email:'nagy.peter@feleles.local',    labels:[], color:'#4caf7d'},
   {$id:'u3', name:'Tóth Anna',     email:'toth.anna@feleles.local',     labels:[], color:'#d4935a'},
   {$id:'u4', name:'Szabó Márk',    email:'szabo.mark@feleles.local',    labels:[], color:'#9b72cf'},
-  {$id:'admin1', name:'Tanár Úr',  email:'admin@feleles.local',         labels:['admin'], color:'#c8b89a'},
+  {$id:'admin1', name:'Admin',  email:'admin@feleles.local',         labels:['admin'], color:'#c8b89a'},
 ];
 
 // ── PREVIEW SEED MSGS ────────────────────────────────────────────
@@ -516,7 +516,7 @@ setTimeout(() => {
 function enterPreview(role) {
   const isAdminRole = role === 'admin';
   user = isAdminRole
-    ? {$id:'admin1', name:'Tanár Úr', email:'admin@feleles.local', labels:['admin'], color:'#c8b89a'}
+    ? {$id:'admin1', name:'Admin', email:'admin@feleles.local', labels:['admin'], color:'#c8b89a'}
     : {$id:'preview', name:'Te (előnézet)', email:'preview@feleles.local', labels:[], color:'#c8b89a'};
   isAdmin = isAdminRole;
 
